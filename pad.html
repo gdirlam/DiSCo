@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title></title>
+    <script>
+        var DiSCo = (function(base){
+
+            function checkCallback(fn) {
+                if (!fn || !fn.call) {
+                    throw new TypeError('Callback is not callable');
+                }
+            }
+            base.write = function (text) {
+                var div = document.createElement('div');
+                div.innerHTML = text;
+                document.body.appendChild(div);
+            }
+            base.extend = function (destination, source) {
+                for (var k in source) {
+                    if (source.hasOwnProperty(k)) {
+                        destination[k] = source[k];
+                    }
+                }
+                return destination;
+            }
+            base.Ready = (function () {
+                        /*!  * onDomReady.js 1.4.0 (c) 2013 Tubal Martin - MIT license  */
+                        var win = window,
+                            doc = win.document,
+                            docElem = doc.documentElement,
+                            w3c = "addEventListener" in doc,
+                            callbacks = [];
+                        var top = isReady = false;
+                        function ready(fn) {
+                            if (!isReady) {
+                                if (!doc.body) {
+                                    return defer(ready);
+                                }
+                                isReady = true;
+                                while (fn = callbacks.shift()) {
+                                    defer(fn);
+                                }
+                            }
+                        }
+                        function completed(event) {
+                            if (w3c || event.type === "load" || doc["readyState"] === "complete") {
+                                detach();
+                                ready();
+                            }
+                        }
+                        function detach() {
+                            if (w3c) {
+                                doc["removeEventListener"]("DOMContentLoaded", completed, false);
+                                win["removeEventListener"]("load", completed, false);
+                            } else {
+                                doc["detachEvent"]("onreadystatechange", completed);
+                                win["detachEvent"]("onload", completed);
+                            }
+                        }
+
+                        function defer(fn, wait) {
+                            setTimeout(fn, +wait >= 0 ? wait : 1);
+                        }
+                        if (doc["readyState"] === "complete") {
+                            defer(ready);
+                        } else if (w3c) {
+                            doc["addEventListener"]("DOMContentLoaded", completed, false);
+                            win["addEventListener"]("load", completed, false);
+                        } else {
+                            doc["attachEvent"]("onreadystatechange", completed);
+                            win["attachEvent"]("onload", completed);
+                            try {
+                                top = win.frameElement == null && docElem;
+                            } catch (e) { }
+
+                            if (top && top.doScroll) {
+                                (function doScrollCheck() {
+                                    if (!isReady) {
+                                        try {
+                                            top.doScroll("left");
+                                        } catch (e) {
+                                            return defer(doScrollCheck, 50);
+                                        }
+                                        detach();
+                                        ready();
+                                    }
+                                })();
+                            }
+                        }
+
+                        function onDomReady(fn) {
+                            isReady ? defer(fn) : callbacks.push(fn);
+                        }
+                        onDomReady.version = "1.4.0";
+                        onDomReady.isReady = function () {
+                            return isReady;
+                        };
+
+                        return onDomReady;
+                    })()
+            base.Browser = (function () {
+                        var userAgent = navigator.userAgent.toLowerCase();
+                        browser = {
+                            version: (userAgent.match(/.+(?:rv|it|ra|ie)[\/: ]([\d.]+)/) || [])[1],
+                            safari: /webkit/.test(userAgent),
+                            opera: /opera/.test(userAgent),
+                            msie: (/msie/.test(userAgent)) && (!/opera/.test(userAgent)),
+                            mozilla: (/mozilla/.test(userAgent)) && (!/(compatible|webkit)/.test(userAgent))
+                        };
+                        return browser
+                    })()
+            base.Strings = (function () {
+                        if (!String.prototype.format)
+                            String.prototype.format = function () {
+                                var txt = this;
+                                for (var i = 0; i < arguments.length; i++) {
+                                    var exp = new RegExp('\\{' + (i) + '\\}', 'gm')
+                                    txt = txt.replace(exp, arguments[i])
+                                }
+                                return txt
+                            };
+                        if (!String.format)
+                            String.format = function () {
+                                for (var i = 1; i < arguments.length; i++) {
+                                    var exp = new RegExp('\\{' + (i - 1) + '\\}', 'gm')
+                                    arguments[0] = arguments[0].replace(exp, arguments[i])
+                                }
+                                return arguments[0]
+                            };
+                        if (!String.prototype.write) {
+                            String.prototype.write = function () {
+                                base.write(this.toString()); 
+                            };
+                        }
+                        if (!String.write) {
+                            String.write = function (text) {
+                                base.write(text);
+                            };
+                        }
+                    })()
+            base.Number = (function () {
+                        if (!Number.prototype.pad) {
+                            Number.prototype.pad = function (p, c) {//
+                                var n = this;
+                                var pad_char = typeof c !== 'undefined' ? c : '0';
+                                var pad = new Array(1 + p).join(pad_char);
+                                return (pad + this).slice(-pad.length);
+                            };
+                        }
+                        if (!Number.prototype.write) {
+                            Number.prototype.write = function () {
+                                base.write(this.toString());
+                            };
+                        }
+                    })()
+            base.Array = (function () {
+                if (!Array.prototype.forEach) { //not in ie8
+                    Array.prototype.forEach = function (callback, thisArg) {
+                        var T, k;
+                        if (this == null) {
+                            throw new TypeError(" this is null or not defined");
+                        }
+                        var O = Object(this);
+                        var len = O.length >>> 0;
+                        if (typeof callback !== "function") {
+                            throw new TypeError(callback + " is not a function");
+                        }
+                        if (thisArg) {
+                            T = thisArg;
+                        }
+                        k = 0;
+                        while (k < len) {
+                            var kValue;
+                            if (k in O) {
+                                kValue = O[k];
+                                callback.call(T, kValue, k, O);
+                            }
+                            k++;
+                        }
+                    };
+                }
+            })()
+            base.Function = (function () {
+                if (!Function.prototype.parameters) { //not in ie8
+                    Function.prototype.parameters = function () {
+                        debugger; 
+                        //      function getParamNames(func) {
+                        //          var fnStr = func.toString().replace(/((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg, '');
+                        //          var result = fnStr.slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')')).match(/([^\s,]+)/g);
+                        //          if (result === null)
+                        //              result = [];
+                        //          return result;
+                        //      }
+                    };
+                }
+
+            })()
+            base.HTML =  (function () {
+                var element = function (tag) {
+                    var text = '';
+                    var attributes = '';
+                    var args = Array.prototype.slice.call(arguments[1], 0);
+                    if (typeof (arguments[1][0]) == "object") {
+                        var item = arguments[1][0];
+                        for (var key in item) {
+                            attributes += ' ' + key + '="' + item[key] + '" ';
+                        }
+                        args.shift();
+                    }
+                    else if (arguments[1][0].indexOf("<") == -1) {
+                        text = arguments[1][0];
+                        args.shift();
+                    }
+                    var innerHTML = args.join(' ');
+                    return '<' + tag + attributes + '>' + text + innerHTML + '</' + tag + '>';
+                }
+                var voidElement = function (tag) {
+                    var attributes = '';
+                    var args = arguments[1][0]; 
+                    if(typeof(args) == "object") {
+                        var item = base.extend(
+                            htmlBase[tag].attributes
+                            , args
+                        );
+                        for (var key in item) {
+                            attributes += ' ' + key + '="' + item[key] + '" ';
+                        }
+                    }
+                    return '<' + tag + attributes + ' />';
+                }
+                var htmlBase = {
+                    a:function () { return element('a', arguments); }
+                    , abbr:function () { return element('abbr', arguments); }
+                    , acronym: function () { var obs = true; return element('acronym', arguments); }
+                    , address:function () { return element('address', arguments); }
+                    , applet: function () { var obs = true; return element('applet', arguments); }
+                    , area:function () { return element('area', arguments); }
+                    , article:function () { return element('article', arguments); }
+                    , aside:function () { return element('aside', arguments); }
+                    , audio:function () { return element('audio', arguments); }
+                    , b:function () { return element('b', arguments); }
+                    , base:function () { return element('base', arguments); }
+                    , basefont:function () { obs; return element('basefont', arguments); }
+                    , bdi:function () { return element('bdi', arguments); }
+                    , bdo:function () { return element('bdo', arguments); }
+                    , big: function () { var obs = true; return element('big', arguments); }
+                    , blockquote:function () { return element('blockquote', arguments); }
+                    , body:function () { return element('body', arguments); }
+                    , br: function () { return voidElement('br', arguments); }
+                    , button:function () { return element('button', arguments); }
+                    , canvas:function () { return element('canvas', arguments); }
+                    , caption:function () { return element('caption', arguments); }
+                    , center: function () { var obs = true; return element('center', arguments); }
+                    , cite:function () { return element('cite', arguments); }
+                    , code:function () { return element('code', arguments); }
+                    , col:function () { return element('col', arguments); }
+                    , colgroup:function () { return element('colgroup', arguments); }
+                    , command:function () { return element('command', arguments); }
+                    , datalist:function () { return element('datalist', arguments); }
+                    , dd:function () { return element('dd', arguments); }
+                    , del:function () { return element('del', arguments); }
+                    , details:function () { return element('details', arguments); }
+                    , dfn:function () { return element('dfn', arguments); }
+                    , dir:function () { return element('dir', arguments); }
+                    , div:function () { return element('div', arguments); }
+                    , dl:function () { return element('dl', arguments); }
+                    , dt:function () { return element('dt', arguments); }
+                    , em:function () { return element('em', arguments); }
+                    , embed:function () { return element('embed', arguments); }
+                    , fieldset:function () { return element('fieldset', arguments); }
+                    , figcaption:function () { return element('figcaption', arguments); }
+                    , figure:function () { return element('figure', arguments); }
+                    , font: function () { var obs = true; return element('font', arguments); }
+                    , footer:function () { return element('footer', arguments); }
+                    , form:function () { return element('form', arguments); }
+                    , frame: function () { var obs = true; return element('frame', arguments); }
+                    , frameset: function () { var obs = true; return element('frameset', arguments); }
+                    , h1:function () { return element('h1 - h6', arguments); }
+                    , h2:function () { return element('h2', arguments); }
+                    , h3:function () { return element('h3', arguments); }
+                    , h4:function () { return element('h4', arguments); }
+                    , h5:function () { return element('h5', arguments); }
+                    , h6:function () { return element('h6', arguments); }
+                    , head:function () { return element('head', arguments); }
+                    , header:function () { return element('header', arguments); }
+                    , hgroup:function () { return element('hgroup', arguments); }
+                    , hr: function () { return voidElement('hr', arguments); }
+                    , html:function () { return element('html', arguments); }
+                    , i:function () { return element('i', arguments); }
+                    , iframe:function () { return element('iframe', arguments); }
+                    , img: function () {
+                        htmlBase.img.attributes = { alt: 'image', src: null };
+                        return voidElement('img', arguments);; 
+                    }
+                    , input:function () { return element('input', arguments); }
+                    , ins:function () { return element('ins', arguments); }
+                    , kbd:function () { return element('kbd', arguments); }
+                    , keygen:function () { return element('keygen', arguments); }
+                    , label:function () { return element('label', arguments); }
+                    , legend:function () { return element('legend', arguments); }
+                    , li:function () { return element('li', arguments); }
+                    , link:function () { return element('link', arguments); }
+                    , map:function () { return element('map', arguments); }
+                    , mark:function () { return element('mark', arguments); }
+                    , menu:function () { return element('menu', arguments); }
+                    , meta:function () { return element('meta', arguments); }
+                    , meter:function () { return element('meter', arguments); }
+                    , nav:function () { return element('nav', arguments); }
+                    , noframes: function () { var obs = true; return element('noframes', arguments); }
+                    , noscript:function () { return element('noscript', arguments); }
+                    , object:function () { return element('object', arguments); }
+                    , ol:function () { return element('ol', arguments); }
+                    , optgroup:function () { return element('optgroup', arguments); }
+                    , option:function () { return element('option', arguments); }
+                    , output:function () { return element('output', arguments); }
+                    , p:function () { return element('p', arguments); }
+                    , param:function () { return element('param', arguments); }
+                    , pre:function () { return element('pre', arguments); }
+                    , progress:function () { return element('progress', arguments); }
+                    , q:function () { return element('q', arguments); }
+                    , rp:function () { return element('rp', arguments); }
+                    , rt:function () { return element('rt', arguments); }
+                    , ruby:function () { return element('ruby', arguments); }
+                    , s:function () { return element('s', arguments); }
+                    , samp:function () { return element('samp', arguments); }
+                    , script:function () { return element('script', arguments); }
+                    , section:function () { return element('section', arguments); }
+                    , select:function () { return element('select', arguments); }
+                    , small:function () { return element('small', arguments); }
+                    , source:function () { return element('source', arguments); }
+                    , span:function () { return element('span', arguments); }
+                    , strike: function () { htmlBase.strike.obs = true; return element('strike', arguments); }
+                    , strong:function () { return element('strong', arguments); }
+                    , style:function () { return element('style', arguments); }
+                    , sub:function () { return element('sub', arguments); }
+                    , summary:function () { return element('summary', arguments); }
+                    , sup:function () { return element('sup', arguments); }
+                    , table:function () { return element('table', arguments); }
+                    , tbody:function () { return element('tbody', arguments); }
+                    , td:function () { return element('td', arguments); }
+                    , textarea:function () { return element('textarea', arguments); }
+                    , tfoot:function () { return element('tfoot', arguments); }
+                    , th:function () { return element('th', arguments); }
+                    , thead:function () { return element('thead', arguments); }
+                    , time:function () { return element('time', arguments); }
+                    , title:function () { return element('title', arguments); }
+                    , tr:function () { return element('tr', arguments); }
+                    , track:function () { return element('track', arguments); }
+                    , tt: function () {
+                        htmlBase.tt.obs = true;
+                        return element('tt', arguments);
+                    }
+                    , u:function () { return element('u', arguments); }
+                    , ul:function () { return element('ul', arguments); }
+                        //, 'var': function () { return element('var', arguments); }
+                    , video:function () { return element('video 5', arguments); }
+                    , wbr:function () { return element('wbr', arguments); }
+                };
+                (function () {
+                    // do some global namespace polution...
+                    for (var key in htmlBase) {
+                        var obj = htmlBase[key];
+                        window[key] = htmlBase[key];
+                        for (var prop in obj) {
+                            if (obj.hasOwnProperty(prop)) {
+                                window[prop] = obj[prop];
+                            }
+                        }
+                    }
+                })();
+                return htmlBase;
+            })()
+
+            return base;
+        })( {} );
+
+        DiSCo.Ready(function () {
+            var doc =
+               div( { class: 'susfoo' }
+                    , h1(a({ class: 'white', href: '#' }, 'hi'))
+                    , img({src: 'Content/Images/codeMonkey.png'})
+                    , br()  
+                    , ul(
+                        li('one', ul( li('1A'), li('1B')) )
+                        , li('two')
+                        , li('three')
+                    )
+                )
+            DiSCo.write(doc);
+        })
+    </script>
+    <style>
+        .susfoo {
+         background-color: white; 
+         border: solid 6px #dcdcdc; 
+        }
+        .white {
+            color: white; 
+        }
+    </style>
+</head>
+<body>
+
+</body>
+
+
+
+</html>
